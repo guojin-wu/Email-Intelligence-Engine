@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Email Helper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --bg: #FAF7F2;
+  --bg2: #f3efe7;
+  --bg3: #ece8df;
+  --surface: rgba(255,255,255,0.65);
+  --text: #2C2418;
+  --text2: #5a5040;
+  --text3: #8c826e;
+  --border: #e2dac9;
+  --border-soft: rgba(226,218,201,0.45);
+  --accent: #e8d584;
+  --accent-light: #FCF4CB;
+  --accent-lighter: #fefdf5;
+  --accent-text: #6b5c10;
+  --accent-glow: rgba(232,213,132,0.35);
+  --red: #c0392b;
+  --green: #27ae60;
+  --orange: #e67e22;
+  --blue: #2980b9;
+  --radius: 16px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font); background: var(--bg); color: var(--text);
+  font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ─── BG ─── */
+.bg-glow { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
+.bg-glow .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.25; animation: orbFloat 20s ease-in-out infinite; }
+.bg-glow .orb-1 { width: 400px; height: 400px; top: -5%; right: 10%; background: radial-gradient(circle, var(--accent-light) 0%, transparent 70%); animation-duration: 25s; }
+.bg-glow .orb-2 { width: 350px; height: 350px; bottom: 20%; left: -5%; background: radial-gradient(circle, #f0e0a0 0%, transparent 70%); animation-duration: 30s; animation-delay: -8s; }
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -40px) scale(1.05); }
+  50% { transform: translate(-20px, 20px) scale(0.95); }
+  75% { transform: translate(15px, 30px) scale(1.02); }
+}
+
+/* ─── REVEAL ─── */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-delay-1 { transition-delay: 0.08s; }
+.reveal-delay-2 { transition-delay: 0.16s; }
+.reveal-delay-3 { transition-delay: 0.24s; }
+
+/* ─── NAV ─── */
+nav {
+  height: 56px; display: flex; align-items: center; padding: 0 32px;
+  background: rgba(250,247,242,0.75); backdrop-filter: blur(16px) saturate(1.4);
+  border-bottom: 1px solid var(--border-soft);
+  position: sticky; top: 0; z-index: 100;
+}
+.nav-inner { display: flex; align-items: center; width: 100%; max-width: 1200px; margin: 0 auto; }
+.nav-brand {
+  font-family: var(--font-display); font-size: 17px; color: var(--text);
+  text-decoration: none; letter-spacing: -0.3px; transition: opacity 0.2s;
+}
+.nav-brand:hover { opacity: 0.7; }
+.nav-back {
+  font-size: 12px; font-weight: 500; color: var(--text3); text-decoration: none;
+  margin-left: auto; padding: 6px 16px; border: 1px solid var(--border-soft);
+  border-radius: 8px; transition: all 0.2s; backdrop-filter: blur(8px);
+}
+.nav-back:hover { border-color: var(--accent); background: var(--accent-lighter); color: var(--accent-text); }
+
+/* ─── LAYOUT ─── */
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
+
+/* ─── HERO ─── */
+.hero { padding: 72px 0 40px; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent-light); color: var(--accent-text);
+  font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 7px 16px; border-radius: 20px; margin-bottom: 20px;
+  border: 1px solid rgba(232,213,132,0.3);
+}
+.hero-badge .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.hero h1 {
+  font-family: var(--font-display); font-size: 44px; font-weight: 400;
+  letter-spacing: -1.2px; line-height: 1.15; margin-bottom: 12px; color: var(--text);
+}
+.hero p { font-size: 16px; color: var(--text2); max-width: 600px; line-height: 1.75; }
+.hero-metrics {
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:14px;
+  max-width:760px;
+  margin-top:24px;
+}
+.hero-metric {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: var(--radius); padding: 16px 18px;
+  backdrop-filter: blur(12px);
+}
+.hero-metric strong {
+  display:block;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--text);
+}
+.hero-metric span {
+  display:block;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text3);
+}
+
+/* ─── FEATURES ─── */
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 32px; max-width: 720px; }
+.feature-card {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: var(--radius); padding: 20px;
+  backdrop-filter: blur(12px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative; overflow: hidden;
+}
+.feature-card::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0; transition: opacity 0.3s;
+}
+.feature-card:hover { transform: translateY(-3px); border-color: rgba(232,213,132,0.4); box-shadow: 0 8px 24px rgba(44,36,24,0.06); }
+.feature-card:hover::after { opacity: 1; }
+.feature-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent-light) 0%, rgba(232,213,132,0.3) 100%);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px; font-size: 16px;
+}
+.feature-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.feature-card p { font-size: 12px; color: var(--text3); line-height: 1.5; }
+
+/* ─── TECH PILLS ─── */
+.tech-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; max-width: 720px; }
+.tech-pill {
+  font-size: 12px; font-weight: 500; padding: 6px 14px; border-radius: 20px;
+  background: var(--accent-light); color: var(--accent-text); letter-spacing: 0.02em;
+  border: 1px solid rgba(232,213,132,0.3); transition: all 0.2s;
+}
+.tech-pill:hover { transform: translateY(-1px); box-shadow: 0 2px 8px var(--accent-glow); }
+
+/* ─── DIVIDER ─── */
+.section-divider { padding: 0; margin: 40px 0 0; }
+.section-divider hr { border: none; border-top: 1px solid var(--border-soft); }
+
+/* ─── APP SECTION ─── */
+.app-section { padding: 40px 0 64px; }
+.app-label { font-size: 11px; font-weight: 600; color: var(--accent-text); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; }
+
+/* ─── CONNECTION CARD ─── */
+.connection-card {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: var(--radius); padding: 16px 20px;
+  backdrop-filter: blur(12px); margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.connection-status { display: flex; align-items: center; gap: 12px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; transition: background 0.3s; }
+.status-dot.connected { background: var(--green); box-shadow: 0 0 8px rgba(39,174,96,0.4); }
+.status-text { font-size: 13px; font-weight: 500; color: var(--text3); transition: color 0.3s; }
+.status-text.connected { color: var(--green); font-weight: 600; }
+.connect-btn {
+  background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+  color: var(--accent-text); border: 1px solid rgba(232,213,132,0.4); border-radius: 8px;
+  padding: 8px 18px; font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.25s; font-family: var(--font);
+}
+.connect-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
+
+/* ─── TABS ─── */
+.tabs {
+  display: inline-flex; gap: 4px; margin-bottom: 20px;
+  background: transparent; border-radius: 12px; padding: 4px;
+}
+.tab-btn {
+  padding: 9px 24px; font-size: 13px; font-weight: 500; border: 1px solid var(--border);
+  background: transparent; border-radius: 9px; cursor: pointer;
+  color: var(--text2); font-family: var(--font); transition: all 0.2s;
+}
+.tab-btn:hover { border-color: var(--accent); color: var(--text); }
+.tab-btn.active {
+  background: var(--accent-light); color: var(--accent-text);
+  border-color: rgba(232,213,132,0.5); font-weight: 600;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ─── CONTROLS ─── */
+.controls { display: flex; gap: 8px; margin-bottom: 20px; }
+.control-btn {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 8px; padding: 8px 18px; font-size: 12px; font-weight: 600;
+  color: var(--text); cursor: pointer; transition: all 0.2s; font-family: var(--font);
+  backdrop-filter: blur(8px); display: flex; align-items: center; gap: 6px;
+}
+.control-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+.control-btn:active { transform: translateY(0); }
+.control-btn.primary {
+  background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
+  color: var(--accent-text); border-color: rgba(232,213,132,0.4);
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+.control-btn.primary:hover { box-shadow: 0 4px 16px var(--accent-glow); }
+.control-btn.loading { opacity: 0.6; pointer-events: none; }
+.spinner {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid transparent; border-top-color: currentColor;
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── EMAIL LIST ─── */
+.email-list {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: var(--radius); overflow: hidden;
+  backdrop-filter: blur(12px); box-shadow: 0 2px 8px rgba(44,36,24,0.04);
+}
+.email-header {
+  display: grid; grid-template-columns: 40px 60px 1fr 120px 120px 100px 80px;
+  gap: 12px; align-items: center; padding: 12px 16px;
+  background: var(--bg2); border-bottom: 1px solid var(--border-soft);
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.email-row {
+  display: grid; grid-template-columns: 40px 60px 1fr 120px 120px 100px 80px;
+  gap: 12px; align-items: center; padding: 14px 16px;
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.15s;
+}
+.email-row:last-child { border-bottom: none; }
+.email-row:hover { background: rgba(232,213,132,0.06); }
+.email-row.important { background: var(--accent-lighter); }
+.email-row.important:hover { background: rgba(252,244,203,0.5); }
+
+.priority-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
+.priority-dot.high { background: var(--red); }
+.priority-dot.medium { background: var(--orange); }
+.priority-dot.low { background: #ccc; }
+
+.email-from { font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.email-subject { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.category-pill {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: 5px; white-space: nowrap;
+}
+.category-pill.work { background: #DBEAFE; color: #1e40af; }
+.category-pill.finance { background: #DCFCE7; color: #15803d; }
+.category-pill.personal { background: #E9D5FF; color: #6b21a8; }
+.category-pill.newsletter { background: var(--bg3); color: var(--text2); }
+.category-pill.notification { background: var(--bg3); color: var(--text2); }
+.category-pill.spam { background: #FEE2E2; color: #991B1B; }
+
+.summary-text { font-size: 11px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.action-pill {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: 5px; white-space: nowrap;
+}
+.action-pill.reply { background: #DBEAFE; color: #1e40af; }
+.action-pill.pay { background: #FEE2E2; color: #991B1B; }
+.action-pill.review { background: var(--accent-light); color: var(--accent-text); }
+.action-pill.apply { background: #DCFCE7; color: #15803d; }
+.action-pill.archive { background: var(--bg3); color: var(--text2); }
+.action-pill.delete { background: #FEE2E2; color: #991B1B; }
+
+.analyze-status { font-size: 10px; color: var(--text3); font-weight: 500; }
+.analyze-status.loading { color: var(--accent-text); }
+.analyze-status.done { color: var(--green); }
+
+.empty-state { padding: 48px 24px; text-align: center; color: var(--text3); }
+.empty-state-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.4; }
+.empty-state-text { font-size: 13px; line-height: 1.6; }
+
+/* ─── COMPOSE ─── */
+.compose-card {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: var(--radius); padding: 20px;
+  backdrop-filter: blur(12px); margin-bottom: 20px;
+}
+.compose-card h3 { font-family: var(--font-display); font-size: 18px; font-weight: 400; margin-bottom: 16px; }
+.form-row { margin-bottom: 12px; }
+.form-label {
+  display: block; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 4px; letter-spacing: 0.5px;
+}
+.form-input {
+  width: 100%; padding: 9px 14px; border: 1px solid var(--border);
+  border-radius: 8px; font-size: 13px; font-family: var(--font);
+  background: var(--bg); color: var(--text); outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+textarea.form-input { resize: vertical; min-height: 120px; }
+.form-actions { display: flex; gap: 8px; margin-top: 16px; }
+
+/* ─── SCHEDULE ─── */
+.sched-row {
+  display: grid; grid-template-columns: 1fr 160px 120px 80px 60px;
+  gap: 12px; align-items: center; padding: 12px 16px;
+  border-bottom: 1px solid var(--border-soft); font-size: 12px;
+}
+.sched-row:last-child { border-bottom: none; }
+.sched-status { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; }
+.sched-status.pending { background: var(--accent-light); color: var(--accent-text); }
+.sched-status.sent { background: #DCFCE7; color: #15803d; }
+.sched-status.failed { background: #FEE2E2; color: #991B1B; }
+.cancel-btn {
+  font-size: 11px; color: var(--red); background: none;
+  border: 1px solid var(--red); border-radius: 6px;
+  padding: 3px 8px; cursor: pointer; opacity: 0.7; font-family: var(--font);
+}
+.cancel-btn:hover { opacity: 1; }
+
+/* ─── DIGEST ─── */
+.digest-card {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: var(--radius); padding: 20px;
+  backdrop-filter: blur(12px); margin-bottom: 20px;
+}
+.digest-card h3 { font-family: var(--font-display); font-size: 18px; font-weight: 400; margin-bottom: 16px; }
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--border-soft);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-label { font-size: 13px; font-weight: 500; }
+.toggle-desc { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.toggle-switch {
+  position: relative; width: 44px; height: 24px;
+  background: var(--bg3); border-radius: 12px; cursor: pointer;
+  transition: background 0.3s;
+}
+.toggle-switch.on { background: var(--accent); }
+.toggle-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 20px; height: 20px; background: #fff; border-radius: 50%;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle-switch.on::after { transform: translateX(20px); }
+
+/* ─── FOOTER ─── */
+footer {
+  padding: 24px 0; border-top: 1px solid var(--border-soft);
+  text-align: center; background: rgba(250,247,242,0.6); margin-top: 48px;
+}
+footer p { font-size: 12px; color: var(--text3); }
+footer a { color: var(--accent-text); text-decoration: none; }
+
+@media (max-width: 900px) {
+  .email-header, .email-row { grid-template-columns: 40px 60px 1fr 80px 60px; }
+  .summary-text, .action-pill { display: none; }
+  .features { grid-template-columns: 1fr; }
+  .hero-metrics { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .hero h1 { font-size: 30px; }
+  .wrap { padding: 0 20px; }
+  nav { padding: 0 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-glow"><div class="orb orb-1"></div><div class="orb orb-2"></div></div>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-brand" href="/" data-file-href="../../frontend/portfolio.html">AI Email Helper</a>
+    <a class="nav-back" href="/" data-file-href="../../frontend/portfolio.html">&larr; Back to Portfolio</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <section class="hero">
+    <div class="reveal"><div class="hero-badge"><span class="pulse-dot"></span> Gmail Integration</div></div>
+    <h1 class="reveal reveal-delay-1">An inbox layer that prioritizes what matters before you even open it.</h1>
+    <p class="reveal reveal-delay-2">AI Email Helper packages personal workflow automation into a product surface for classification, scheduling, and digesting. The point is not just to analyze emails, but to reduce inbox decision fatigue with clear next actions.</p>
+    <div class="hero-metrics reveal reveal-delay-2">
+      <div class="hero-metric">
+        <strong>Priority-first</strong>
+        <span>Flags urgent threads, reviews, and archive-ready noise in one pass.</span>
+      </div>
+      <div class="hero-metric">
+        <strong>Compose + schedule</strong>
+        <span>Turns triage into follow-through instead of stopping at classification.</span>
+      </div>
+      <div class="hero-metric">
+        <strong>Digest loop</strong>
+        <span>Supports a daily summary workflow instead of constant inbox checking.</span>
+      </div>
+    </div>
+    <div class="features reveal reveal-delay-3">
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>Smart Classification</h3>
+        <p>Gemini-style classification turns raw inbox volume into clearer action buckets.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📅</div>
+        <h3>Schedule & Send</h3>
+        <p>Respond immediately or queue messages deliberately instead of context switching all day.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Daily Digest</h3>
+        <p>Summaries collapse inbox review into a calmer, more intentional routine.</p>
+      </div>
+    </div>
+    <div class="tech-row reveal">
+      <span class="tech-pill">Gmail API</span>
+      <span class="tech-pill">Gemini</span>
+      <span class="tech-pill">OAuth2</span>
+      <span class="tech-pill">Express</span>
+      <span class="tech-pill">AI Classification</span>
+    </div>
+  </section>
+
+  <div class="section-divider reveal"><hr></div>
+
+  <div class="app-section">
+    <div class="app-label reveal">Live Application</div>
+
+    <!-- Connection card -->
+    <div class="connection-card reveal">
+      <div class="connection-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span class="status-text" id="statusText">Connecting...</span>
+      </div>
+      <button class="connect-btn" id="connectBtn" style="display:none;">Connect Gmail</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs reveal" id="tabsSection" style="display:none;">
+      <button class="tab-btn active" onclick="switchTab('inbox')">Inbox Analysis</button>
+      <button class="tab-btn" onclick="switchTab('compose')">Compose & Schedule</button>
+      <button class="tab-btn" onclick="switchTab('digest')">Daily Digest</button>
+    </div>
+
+    <!-- TAB: Inbox Analysis -->
+    <div class="tab-panel active reveal" id="panel-inbox">
+      <div class="controls">
+        <button class="control-btn primary" id="fetchBtn">Fetch Emails (20)</button>
+        <button class="control-btn" id="analyzeBtn" disabled>Analyze All</button>
+      </div>
+      <div class="email-list" id="emailContainer">
+        <div class="empty-state">
+          <div class="empty-state-icon">📧</div>
+          <div class="empty-state-text">No emails loaded. Connect Gmail and fetch emails to get started.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Compose & Schedule -->
+    <div class="tab-panel" id="panel-compose">
+      <div class="compose-card">
+        <h3>Compose Email</h3>
+        <div class="form-row">
+          <label class="form-label">To</label>
+          <input type="email" class="form-input" id="composeTo" placeholder="recipient@example.com">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Subject</label>
+          <input type="text" class="form-input" id="composeSubject" placeholder="Email subject">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Body</label>
+          <textarea class="form-input" id="composeBody" placeholder="Write your email here..."></textarea>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Schedule for (optional)</label>
+          <input type="datetime-local" class="form-input" id="composeSendAt" style="max-width:280px;">
+        </div>
+        <div class="form-actions">
+          <button class="control-btn primary" id="sendNowBtn" onclick="sendOrSchedule()">Send Now</button>
+          <button class="control-btn" onclick="clearCompose()">Clear</button>
+        </div>
+      </div>
+      <div class="compose-card">
+        <h3>Scheduled Emails</h3>
+        <div id="scheduleList">
+          <div class="empty-state" style="padding:24px;">
+            <div class="empty-state-text">No scheduled emails</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Daily Digest -->
+    <div class="tab-panel" id="panel-digest">
+      <div class="digest-card">
+        <h3>Daily Email Digest</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">AI scans your recent emails and sends you a summary of what's important.</p>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Enable Daily Digest</div>
+            <div class="toggle-desc">Automatically send a digest at the scheduled time</div>
+          </div>
+          <div class="toggle-switch" id="digestToggle" onclick="toggleDigest()"></div>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Digest Time</div>
+            <div class="toggle-desc">When to send the daily digest</div>
+          </div>
+          <input type="time" class="form-input" id="digestTime" value="08:00" style="width:120px;" onchange="saveDigestSettings()">
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Emails to Scan</div>
+            <div class="toggle-desc">Number of recent emails to include</div>
+          </div>
+          <select class="form-input" id="digestCount" style="width:80px;" onchange="saveDigestSettings()">
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="30" selected>30</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+        <div class="toggle-row" style="border-bottom:none;">
+          <div>
+            <div class="toggle-label">Last Run</div>
+            <div class="toggle-desc" id="digestLastRun">Never</div>
+          </div>
+          <button class="control-btn primary" id="digestRunBtn" onclick="runDigestNow()" style="padding:6px 14px;">Run Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p><a href="/" data-file-href="../../frontend/portfolio.html">GuoJin Wu</a> &middot; 2026</p>
+</footer>
+
+<script>
+// ─── Scroll Reveal ───
+const revObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revObserver.unobserve(e.target); } });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revObserver.observe(el));
+
+let emails = [];
+let analyzed = {};
+
+function getCategoryColor(category) {
+  const colors = { work:'#DBEAFE', finance:'#DCFCE7', personal:'#E9D5FF', newsletter:'#F3F4F6', notification:'#F3F4F6', spam:'#FEE2E2' };
+  return colors[category] || '#F3F4F6';
+}
+
+async function checkStatus() {
+  try {
+    const res = await fetch('/api/email-helper/status');
+    const data = await res.json();
+    updateConnectionUI(data.connected);
+  } catch (e) {
+    console.error('Status check failed:', e);
+    updateConnectionUI(false);
+  }
+}
+
+function renderEmails() {
+  const container = document.getElementById('emailContainer');
+  if (emails.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📧</div><div class="empty-state-text">No emails loaded. Connect Gmail and fetch emails to get started.</div></div>';
+    return;
+  }
+  let html = '<div class="email-header"><div style="text-align:center;">⬤</div><div>Priority</div><div>From / Subject</div><div>Category</div><div>Summary</div><div>Action</div><div>Status</div></div>';
+  for (const email of emails) {
+    const analysis = analyzed[email.id];
+    const isImportant = analysis && analysis.is_important;
+    const priority = (analysis && analysis.priority) || 'low';
+    const category = (analysis && analysis.category) || '—';
+    const summary = (analysis && analysis.summary) || '—';
+    const action = (analysis && analysis.action) || '—';
+    const statusHtml = analysis ? '<span class="analyze-status done">✓</span>' : '<span class="analyze-status">pending</span>';
+    html += '<div class="email-row' + (isImportant ? ' important' : '') + '">' +
+      '<div style="text-align:center;"><span class="priority-dot ' + priority + '"></span></div>' +
+      '<div style="font-weight:600;">' + priority.toUpperCase() + '</div>' +
+      '<div><div class="email-from">' + escapeHtml(email.from) + '</div><div class="email-subject">' + escapeHtml(email.subject) + '</div></div>' +
+      '<div><span class="category-pill ' + category + '">' + category.toUpperCase() + '</span></div>' +
+      '<div><span class="summary-text">' + escapeHtml(summary) + '</span></div>' +
+      '<div><span class="action-pill ' + action + '">' + action.toUpperCase() + '</span></div>' +
+      '<div style="text-align:center;">' + statusHtml + '</div></div>';
+  }
+  container.innerHTML = html;
+}
+
+function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+
+async function fetchEmails() {
+  const fetchBtn = document.getElementById('fetchBtn');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  fetchBtn.disabled = true; fetchBtn.innerHTML = '<span class="spinner"></span> Fetching...';
+  try {
+    const res = await fetch('/api/email-helper/messages?count=20');
+    const data = await res.json();
+    if (res.ok) { emails = data; analyzed = {}; renderEmails(); analyzeBtn.disabled = false; }
+    else { alert('Failed to fetch emails: ' + (data.error || 'Unknown error')); }
+  } catch (e) { alert('Error: ' + e.message); }
+  finally { fetchBtn.disabled = false; fetchBtn.innerHTML = 'Fetch Emails (20)'; }
+}
+
+async function analyzeAll() {
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  analyzeBtn.disabled = true; analyzeBtn.innerHTML = '<span class="spinner"></span> Analyzing...';
+  try {
+    const res = await fetch('/api/email-helper/analyze-batch', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emails: emails.map(e => ({ id: e.id, from: e.from, subject: e.subject, body: e.body, snippet: e.snippet })) })
+    });
+    const data = await res.json();
+    if (res.ok && data.results) { for (const result of data.results) { if (result.analysis) analyzed[result.id] = result.analysis; } renderEmails(); }
+    else { alert('Analysis failed: ' + (data.error || 'Unknown error')); }
+  } catch (e) { alert('Error: ' + e.message); }
+  finally { analyzeBtn.disabled = false; analyzeBtn.innerHTML = 'Analyze All'; }
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(function(btn, i) {
+    btn.classList.toggle('active', (name === 'inbox' && i === 0) || (name === 'compose' && i === 1) || (name === 'digest' && i === 2));
+  });
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  var panel = document.getElementById('panel-' + name);
+  if (panel) panel.classList.add('active');
+  if (name === 'compose') loadScheduledEmails();
+  if (name === 'digest') loadDigestConfig();
+}
+
+async function sendOrSchedule() {
+  var to = document.getElementById('composeTo').value.trim();
+  var subject = document.getElementById('composeSubject').value.trim();
+  var body = document.getElementById('composeBody').value.trim();
+  var sendAt = document.getElementById('composeSendAt').value;
+  if (!to || !subject) { alert('To and Subject are required'); return; }
+  var btn = document.getElementById('sendNowBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Sending...';
+  try {
+    if (sendAt) {
+      var res = await fetch('/api/email-helper/schedule', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, body, sendAt: new Date(sendAt).toISOString() }) });
+      var data = await res.json();
+      if (res.ok) { alert('Email scheduled for ' + new Date(sendAt).toLocaleString()); clearCompose(); loadScheduledEmails(); }
+      else { alert('Error: ' + (data.error || 'Failed')); }
+    } else {
+      var res = await fetch('/api/email-helper/send', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, body }) });
+      var data = await res.json();
+      if (res.ok) { alert('Email sent!'); clearCompose(); } else { alert('Error: ' + (data.error || 'Failed')); }
+    }
+  } catch (e) { alert('Error: ' + e.message); }
+  finally { btn.disabled = false; btn.innerHTML = document.getElementById('composeSendAt').value ? 'Schedule' : 'Send Now'; }
+}
+
+function clearCompose() {
+  ['composeTo','composeSubject','composeBody','composeSendAt'].forEach(id => document.getElementById(id).value = '');
+  updateSendBtnLabel();
+}
+
+document.getElementById('composeSendAt').addEventListener('input', updateSendBtnLabel);
+function updateSendBtnLabel() {
+  document.getElementById('sendNowBtn').textContent = document.getElementById('composeSendAt').value ? 'Schedule' : 'Send Now';
+}
+
+async function loadScheduledEmails() {
+  try {
+    var res = await fetch('/api/email-helper/scheduled');
+    var list = await res.json();
+    var container = document.getElementById('scheduleList');
+    if (!list.length) { container.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="empty-state-text">No scheduled emails</div></div>'; return; }
+    var html = '';
+    list.forEach(function(e) {
+      var cancelHtml = e.status === 'pending' ? '<button class="cancel-btn" onclick="cancelScheduled(\'' + e.id + '\')">Cancel</button>' : '';
+      html += '<div class="sched-row"><div><strong>' + escapeHtml(e.subject) + '</strong><br><span style="color:var(--text3);font-size:11px;">To: ' + escapeHtml(e.to) + '</span></div>' +
+        '<div style="font-size:11px;color:var(--text2);">Send: ' + new Date(e.sendAt).toLocaleString() + '</div>' +
+        '<div><span class="sched-status ' + e.status + '">' + e.status.toUpperCase() + '</span></div>' +
+        '<div style="font-size:10px;color:var(--text3);">' + (e.sentAt ? new Date(e.sentAt).toLocaleString() : '') + '</div>' +
+        '<div>' + cancelHtml + '</div></div>';
+    });
+    container.innerHTML = html;
+  } catch (e) { console.error('Load scheduled failed:', e); }
+}
+
+async function cancelScheduled(id) {
+  if (!confirm('Cancel this scheduled email?')) return;
+  try { await fetch('/api/email-helper/scheduled/' + id, { method: 'DELETE' }); loadScheduledEmails(); }
+  catch (e) { alert('Error: ' + e.message); }
+}
+
+async function loadDigestConfig() {
+  try {
+    var res = await fetch('/api/email-helper/digest');
+    var config = await res.json();
+    document.getElementById('digestToggle').classList.toggle('on', config.enabled);
+    document.getElementById('digestTime').value = config.time || '08:00';
+    document.getElementById('digestCount').value = String(config.emailCount || 30);
+    document.getElementById('digestLastRun').textContent = config.lastRun ? new Date(config.lastRun).toLocaleString() : 'Never';
+  } catch (e) { console.error('Load digest config failed:', e); }
+}
+
+async function toggleDigest() {
+  document.getElementById('digestToggle').classList.toggle('on');
+  await saveDigestSettings();
+}
+
+async function saveDigestSettings() {
+  var enabled = document.getElementById('digestToggle').classList.contains('on');
+  var time = document.getElementById('digestTime').value;
+  var emailCount = parseInt(document.getElementById('digestCount').value);
+  try { await fetch('/api/email-helper/digest', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled, time, emailCount }) }); }
+  catch (e) { console.error('Save digest failed:', e); }
+}
+
+async function runDigestNow() {
+  var btn = document.getElementById('digestRunBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Running...';
+  try {
+    var res = await fetch('/api/email-helper/digest/run', { method: 'POST' });
+    var data = await res.json();
+    if (data.sent) { alert('Digest sent to ' + data.to + ' (' + data.emailsAnalyzed + ' emails analyzed)'); loadDigestConfig(); }
+    else { alert('Digest not sent: ' + (data.reason || 'unknown')); }
+  } catch (e) { alert('Error: ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Run Now'; }
+}
+
+document.getElementById('connectBtn').addEventListener('click', function() { window.location.href = '/auth/email-helper/connect'; });
+document.getElementById('fetchBtn').addEventListener('click', fetchEmails);
+document.getElementById('analyzeBtn').addEventListener('click', analyzeAll);
+
+function updateConnectionUI(connected) {
+  var statusDot = document.getElementById('statusDot');
+  var statusText = document.getElementById('statusText');
+  var connectBtn = document.getElementById('connectBtn');
+  var tabsSection = document.getElementById('tabsSection');
+  if (connected) {
+    statusDot.classList.add('connected'); statusText.textContent = 'Connected'; statusText.classList.add('connected');
+    connectBtn.style.display = 'none'; tabsSection.style.display = 'inline-flex';
+  } else {
+    statusDot.classList.remove('connected'); statusText.textContent = 'Not connected'; statusText.classList.remove('connected');
+    connectBtn.style.display = 'block'; tabsSection.style.display = 'none';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', checkStatus);
+if (window.location.protocol === 'file:') {
+  document.querySelectorAll('[data-file-href]').forEach(function(link) {
+    link.setAttribute('href', link.getAttribute('data-file-href'));
+  });
+}
+</script>
+
+</body>
+</html>
